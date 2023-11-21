@@ -1,0 +1,263 @@
+---
+title: "Bellabeat_Capstone"
+author: "Nanke Williams"
+date: "2022-09-29"
+output: html_document
+---
+
+### Introduction and Background
+
+Bellabeat has 5 products: an app (Bellabeat app), a wellness tracker, a smart watch, a water bottle line and a subscription membership service. 
+
+The business task is to analyze user smart device data collected by the wearable technology and tracked on the app, in order to:
+
+* gain insight into how customers are using their smart devices, and
+* recommend appropriate marketing strategies for the company.
+
+### Sourcing the Data
+The Bellabeat dataset was sourced from [here](https://www.kaggle.com/arashnic/fitbit). The primary tables used in this analysis are:
+
+* dailyActivity_merged.csv
+* sleepDay_merged.csv
+* weightLogInfo_merged.csv
+* heartrate_records.csv
+
+### Analysing the Credibility of the dataset
+The data contains the following number of unique user records: 
+
+* dailyActivity_merged.csv - 33 records
+* sleepDay_merged.csv - 24 records
+* weightLogInfo_merged.csv - 8 records
+* heartrate_records.csv - 14 records
+
+There's a very limited amount of data to analyze and make recommendations from. The data is accurate, original and comprehensive. But it is dated and not current.
+
+### Preliminary analysis of the datasets
+Preliminary analysis of the dataset was conducted in SQL. The following points were found:
+
+* There are only 3 unique IDs identical to all 4 datasets. This sample is too small to analyze. We have chosen instead to prioritize the dailyActivity dataset and join relevant variables from the other datasets to it. A new summary dataset was created.
+* There are null records across all variables in the largest dataset (dailyActivity)
+* This will affect all cross data analysis and significantly reduce the sample size. 
+
+In R, we will perform correlation analysis and visualizations on some on the relationship between some of the variables. 
+
+### Installing and loading common packages and libraries
+```{r}
+# install.packages('tidyverse')
+library(tidyverse)
+```
+
+### Loading your CSV files
+We create variables and load the csv files into them.
+```{r}
+daily_activity <- read.csv("dailyActivity_merged.csv")
+sleep_log <- read.csv("sleepDay_merged.csv")
+weight_log <- read.csv("weightLogInfo_merged.csv")
+heartrate_log <- read.csv("heartrate_records.csv")
+summary_table <- read.csv('fitabasecollated_table.csv')
+```
+
+### Preliminary analysis
+We conduct preliminary analysis of the tables using head(), glimpse(), str(), glimpse(), summary() methods to get an initial overview of the data.
+
+```{r}
+head(daily_activity)
+```
+
+```{r}
+head(sleep_log)
+```
+
+```{r}
+head(weight_log)
+```
+
+```{r}
+head(heartrate_log)
+```
+
+```{r}
+head(summary_table)
+```
+This is the primary table to be used for this review.
+
+str() shows us the column names, data types and a sample of the records in each variable.
+```{r}
+str(summary_table)
+```
+
+## Data Cleaning
+For proper analysis, we will convert the following columns to appropriate datatypes: 
+
+* id column to character
+
+```{r}
+summary_table$id <- as.character(summary_table$id)
+```
+
+A glimpse of the table after cleaning.
+```{r}
+glimpse(summary_table)
+```
+Everything looks ready for analysis.
+
+### Summary statistics
+First, some summary statistics to view statistical information on all variables.
+```{r}
+summary(summary_table)
+```
+Some variables (such as avg_weight_kg,avg_bmi, sleep_records, mins_asleep, mins_in_bed contain significant null values which will affect visual analysis)
+
+A brief summary of select columns from each table (daily_activity, sleepday and weightlog_info), shows the following:
+Daily Activity Table - Steps
+```{r}
+summary(summary_table$steps)
+```
+
+Sleep Log Table - minutes asleep
+```{r}
+summary(summary_table$mins_asleep)
+```
+
+Weight Log Table - average weight in kilograms
+```{r}
+summary(summary_table$avg_weight_kg)
+```
+
+#### Visualizing the Data
+First, we measure correlation between the relevant variables and then visualize that correlation in a scatter plot.
+
+* A correlation coefficient is a metric that measures the extent to which numeric variables are associated with one another. 
+* The correlation coefficient always lies between +1 (perfect positive correlation) and –1 (perfect negative correlation); 0 indicates no correlation.
+
+Measure correlation between active distance and active minutes
+```{r}
+cor(x= summary_table$active_distance, y = summary_table$active_mins, use = 'complete.obs', method = 'pearson')
+```
+This shows significant association between the variables. Let's confirm with a scatterplot chart.
+
+Chart relationship between active minutes and active distance
+```{r}
+ggplot(data = summary_table) + 
+  geom_point(mapping = aes(x = active_distance, y = active_mins)) +
+  labs(title = 'Relationship between Active Minutes & Active Distance', 
+       caption = 'Active Minutes & Distance = Total Mins - Sedentary Minutes')
+```
+
+Measure correlation betwen steps and active distance
+```{r}
+cor(x= summary_table$active_distance, y = summary_table$steps, use = 'everything', method = 'pearson')
+```
+
+Chart relationship between steps and active distance
+```{r}
+ggplot(data = summary_table) + 
+  geom_point(mapping = aes(x = active_distance, y = steps)) +
+  labs(title = 'Relationship between Steps & Active Distance', 
+       caption = 'There is a positive correlation between steps and active distance')
+```
+
+Measure correlation between calories and active minutes
+```{r}
+cor(x= summary_table$calories, y = summary_table$active_mins, use = 'everything', method = 'pearson')
+```
+
+Chart relationship between calories and active minutes
+```{r}
+ggplot(data = summary_table) + 
+  geom_point(mapping = aes(x = active_mins, y = calories)) +
+  labs(title = 'Relationship between Calories & Active Minutes', 
+       caption = 'Correlation between these variables not clear')
+```
+The relationship between these variables are not distint enough. More data is needed to confirm or exclude any conclusions about correlation.
+
+Measure correlation between steps and average bmi
+```{r}
+cor(x= summary_table$steps, y = summary_table$avg_bmi, use = 'complete.obs', method = 'pearson')
+```
+There is a significant negative correlation between bmi and step activity. This will be clearer with a visual graph.
+
+Chart relationship between steps and avg_bmi
+```{r}
+ggplot(data = summary_table) + 
+  geom_point(mapping = aes(x = steps, y = avg_bmi)) +
+  labs(title = 'Relationship between Steps & Average Body Mass Index', 
+       caption = 'Negative Correlation Exists. Sample too small')
+```
+Unfortunately, the number of records available for this chart (8 records) is too small to make any final conclusions.
+
+Measure correlation between steps and average weight
+```{r}
+cor(x= summary_table$steps, y = summary_table$avg_weight_kg, use = 'complete.obs', method = 'pearson')
+```
+
+Chart relationship between steps and avg_weight
+```{r}
+ggplot(data = summary_table) + 
+  geom_point(mapping = aes(x = steps, y = avg_weight_kg)) +
+    labs(title = 'Relationship between Steps & Average Weight', 
+       caption = 'Negative Correlation Exists. Sample too small')
+```
+
+Measure correlation between steps and minutes asleep
+```{r}
+cor(x= summary_table$steps, y = summary_table$mins_asleep, use = 'complete.obs', method = 'pearson')
+```
+There is no significant correlation between active steps and minutes asleep. The visual chart will show this much clearly.
+
+Chart relationship between steps and mins_asleep
+```{r}
+ggplot(data = summary_table) + 
+  geom_point(mapping = aes(x = steps, y = mins_asleep)) + 
+    labs(title = 'Relationship between Steps & Minutes Asleep', 
+       caption = 'No Correlation')
+```
+
+Measure correlation between calories and minutes asleep
+```{r}
+cor(x= summary_table$calories, y = summary_table$mins_asleep, use = 'complete.obs', method = 'pearson')
+```
+
+Chart relationship between calories and mins_asleep
+```{r}
+ggplot(data = summary_table) + 
+  geom_point(mapping = aes(x = calories, y = mins_asleep)) + 
+      labs(title = 'Relationship between Calories & Minutes Asleep', 
+       caption = 'No Correlation')
+```
+
+Measure correlation between minutes asleep and active minutes
+```{r}
+cor(x= summary_table$mins_asleep, y = summary_table$active_mins, use = 'complete.obs', method = 'pearson')
+```
+
+Chart relationship between minutes asleep and active minutes
+```{r}
+ggplot(data = summary_table) + 
+  geom_point(mapping = aes(x = mins_asleep, y = active_mins)) +
+      labs(title = 'Relationship between Minutes Asleep & Active Minutes', 
+       caption = 'Correlation is unclear')
+```
+
+Measure correlation between calories and average weight 
+```{r}
+cor(x= summary_table$calories, y = summary_table$avg_weight_kg, use = 'complete.obs', method = 'pearson')
+```
+
+Chart relationship between calories and average weight 
+```{r}
+ggplot(data = summary_table) + 
+  geom_point(mapping = aes(x = calories, y = avg_weight_kg)) + 
+      labs(title = 'Relationship between Calories & Average Weight', 
+       caption = 'No Correlation')
+```
+
+
+#### Conclusion from Analysis
+Here are some recommendations from the analysis of the dataset:
+
+* Bellabeat should provide more data for analysis
+* Bellabeat should market to its users via regular reminders on the Bellabeat app, that they wear their smart technology
+* Although a small sample size, the negative correlation between step activity and average body mass index and average weight is a positive metric. This should be highlighted to users
+* Important correlations could not be properly determined because of the small sample size - e.g. the relationship between calories, activity, sleep and weight is not clear.
+
